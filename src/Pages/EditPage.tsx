@@ -1,79 +1,69 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from '../axiosApi.ts';
+import axios from '../axiosApi';
+
+interface Post {
+    id: string;
+    title: string;
+    content: string;
+    category: string;
+}
 
 const EditPage: React.FC = () => {
-    const { pageName } = useParams<{ pageName: string }>();
-    const [pageTitle, setPageTitle] = useState<string>('');
-    const [pageContent, setPageContent] = useState<string>('');
-    const [pageCategory, setPageCategory] = useState<string>('');
+    const { postId } = useParams();
+    const [post, setPost] = useState<Post | null>(null);
+    const [title, setTitle] = useState<string>('');
+    const [content, setContent] = useState<string>('');
+    const [category, setCategory] = useState<string>('');
     const navigate = useNavigate();
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await axios.get(`/pages/${pageName}`);
-                const { title, content, category } = response.data;
-                setPageTitle(title);
-                setPageContent(content);
-                setPageCategory(category);
+                const response = await axios.get<Post>(`/pages/${postId}`);
+                setPost(response.data);
+                setTitle(response.data.title);
+                setContent(response.data.content);
+                setCategory(response.data.category);
             } catch (error) {
-                console.error('Error fetching page:', error);
+                console.error('Error fetching post:', error);
             }
         };
 
-        fetchData();
-    }, [pageName]);
+        if (postId) {
+            fetchData();
+        }
+    }, [postId]);
 
     const handleSave = async () => {
         try {
-            await axios.put(`/pages/${pageName}`, { title: pageTitle, content: pageContent, category: pageCategory });
-            navigate(`/admin`);
+            await axios.put(`/pages/${postId}`, { title, content, category });
+            navigate('/admin');
         } catch (error) {
-            console.error('Error saving page:', error);
+            console.error('Error updating post:', error);
         }
     };
 
+    if (!post) {
+        return <div>Loading...</div>;
+    }
+
     return (
         <div>
-            <h2>Edit Page - {pageTitle}</h2>
-            <form>
-                <div className="mb-3">
-                    <label htmlFor="pageCategory" className="form-label">Page Category</label>
-                    <select
-                        id="pageCategory"
-                        className="form-select"
-                        value={pageCategory}
-                        onChange={(e) => setPageCategory(e.target.value)}
-                    >
-                        <option value="home">Home</option>
-                        <option value="about">About</option>
-                        <option value="contact">Contact</option>
-                        <option value="divisions">Divisions</option>
-                        {/* Add more categories as needed */}
-                    </select>
-                </div>
-                <div className="mb-3">
-                    <label htmlFor="pageTitle" className="form-label">Page Title</label>
-                    <input
-                        type="text"
-                        className="form-control"
-                        id="pageTitle"
-                        value={pageTitle}
-                        onChange={(e) => setPageTitle(e.target.value)}
-                    />
-                </div>
-                <div className="mb-3">
-                    <label htmlFor="pageContent" className="form-label">Page Content</label>
-                    <textarea
-                        className="form-control"
-                        id="pageContent"
-                        value={pageContent}
-                        onChange={(e) => setPageContent(e.target.value)}
-                    />
-                </div>
-                <button type="button" className="btn btn-primary" onClick={handleSave}>Save</button>
-            </form>
+            <h2>Edit Page</h2>
+            <div>
+                <label>Title:</label>
+                <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} />
+            </div>
+            <div>
+                <label>Content:</label>
+                <textarea value={content} onChange={(e) => setContent(e.target.value)} />
+            </div>
+            <div>
+                <label>Category:</label>
+                <input type="text" value={category} onChange={(e) => setCategory(e.target.value)} />
+            </div>
+            <button onClick={handleSave}>Save</button>
         </div>
     );
 };
